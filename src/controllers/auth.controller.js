@@ -1,8 +1,15 @@
 const jwt = require("jsonwebtoken");
 const { z } = require("zod");
-const User = require("../models/User");
+const imported = require("../models/User");
 
-console.log("🔎 User importat =", User);
+// fallback sigur: dacă e { User: model } sau direct model
+const User = imported.User || imported;
+
+console.log("🔎 User importat tip:", typeof User);
+if (!User || typeof User.findOne !== "function") {
+  console.error("🛑 Modelul User nu a fost încărcat corect:", User);
+  throw new Error("User model not loaded");
+}
 
 // 🔒 Validări cu Zod
 const registerSchema = z.object({
