@@ -2,11 +2,16 @@ const jwt = require("jsonwebtoken");
 const { z } = require("zod");
 const User = require("../models/User");
 
+console.log("🔎 User importat =", User);
+
+// 🔒 Validări cu Zod
 const registerSchema = z.object({
   email: z.string().email(),
   name: z.string().min(2),
   surname: z.string().min(2).optional(),
   phone: z.string().min(6).optional(),
+  parentName: z.string().min(2).optional(),
+  parentPhone: z.string().min(6).optional(),
   password: z.string().min(6),
   role: z.enum(["student", "prof", "admin"]).optional(),
 });
@@ -16,6 +21,7 @@ const loginSchema = z.object({
   password: z.string().min(6),
 });
 
+// 🔐 Funcție pentru generare JWT
 function signToken(id, role) {
   return jwt.sign({ id, role }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES || "7d",
@@ -57,7 +63,7 @@ async function login(req, res) {
     const { email, password } = loginSchema.parse(req.body);
 
     const user = await User.findOne({ email }).select(
-      "+password role name surname phone email subscriptions"
+      "+password role name surname phone parentName parentPhone email subscriptions"
     );
 
     console.log("➡️ LOGIN attempt for", email);
@@ -93,7 +99,7 @@ async function login(req, res) {
 async function me(req, res) {
   try {
     const user = await User.findById(req.user.id).select(
-      "email name surname phone role subscriptions"
+      "email name surname phone parentName parentPhone role subscriptions"
     );
     if (!user) {
       return res.status(404).json({ error: "User not found" });
@@ -114,6 +120,8 @@ function formatUser(user) {
     name: user.name,
     surname: user.surname || "",
     phone: user.phone || "",
+    parentName: user.parentName || "",
+    parentPhone: user.parentPhone || "",
     role: user.role,
     subscriptions: user.subscriptions || [],
   };
