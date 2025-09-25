@@ -34,7 +34,7 @@ async function register(req, res) {
 
     const user = await User.create({
       ...data,
-      subscriptions: [], // implicit gol
+      subscriptions: [],
     });
 
     const token = signToken(user._id, user.role);
@@ -44,6 +44,7 @@ async function register(req, res) {
       user: formatUser(user),
     });
   } catch (e) {
+    console.error("❌ REGISTER error:", e);
     return res.status(400).json({
       error: e.errors?.[0]?.message || e.message || "Date invalide",
     });
@@ -58,43 +59,54 @@ async function login(req, res) {
     const user = await User.findOne({ email }).select(
       "+password role name surname phone email subscriptions"
     );
+
+    console.log("➡️ LOGIN attempt for", email);
+
     if (!user) {
+      console.warn("❌ LOGIN failed: user not found");
       return res.status(401).json({ error: "Email sau parolă greșite" });
     }
 
     const ok = await user.comparePassword(password);
     if (!ok) {
+      console.warn("❌ LOGIN failed: bad password");
       return res.status(401).json({ error: "Email sau parolă greșite" });
     }
 
     const token = signToken(user._id, user.role);
 
-    return res.json({
+    console.log("✅ LOGIN success for", email);
+
+    return res.status(200).json({
       token,
       user: formatUser(user),
     });
   } catch (e) {
-    return res.status(400).json({
-      error: e.errors?.[0]?.message || e.message || "Date invalide",
+    console.error("❌ LOGIN error:", e);
+    return res.status(500).json({
+      error: e.errors?.[0]?.message || e.message || "Eroare server la login",
     });
   }
 }
 
-// 🔹 GET /auth/me – userul curent (după ce s-a logat sau după plată + refresh)
+// 🔹 GET /auth/me
 async function me(req, res) {
   try {
     const user = await User.findById(req.user.id).select(
       "email name surname phone role subscriptions"
     );
-    if (!user) return res.status(404).json({ error: "User not found" });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
 
     res.json({ user: formatUser(user) });
   } catch (e) {
+    console.error("❌ ME error:", e);
     res.status(500).json({ error: e.message });
   }
 }
 
-// helper pentru a returna doar câmpurile dorite
+// helper
 function formatUser(user) {
   return {
     id: user._id,
