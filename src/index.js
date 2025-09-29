@@ -3,6 +3,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
+const path = require("path");
 
 const app = express();
 
@@ -15,7 +16,7 @@ const authRouter = require("./routes/auth.routes");
 const ascultariRouter = require("./routes/ascultari.routes"); // 👈 aici avem bookings + credits + availability
 
 // === STRIPE WEBHOOK (raw body - doar pentru webhook) ===
-// ⚠️ atenție: webhook-ul trebuie declarat înainte de express.json()
+// ⚠️ trebuie definit înainte de express.json()
 app.post(
   "/api/payments/webhook",
   express.raw({ type: "application/json" }),
@@ -23,20 +24,33 @@ app.post(
 );
 
 // === MIDDLEWARE GLOBAL ===
-app.use(cors());
+app.use(
+  cors({
+    origin: "https://academedica.ro", // 🔐 doar frontendul tău are voie
+    credentials: true, // 🔐 permite trimiterea de token/header
+  })
+);
+
 app.use(express.json()); // 👈 după .raw, altfel sparge webhookul
 
-// === ROUTES ===
-app.use("/api/payments", payments.router); // rute normale de payments
+// === ROUTES API ===
+app.use("/api/payments", payments.router);
 app.use("/api/videos", videosRouter);
 app.use("/api/evaluations", evaluationRouter);
 app.use("/api/contact", contactRouter);
 app.use("/api/auth", authRouter);
-app.use("/api/ascultari", ascultariRouter); // 👈 tot ce ține de ascultări
+app.use("/api/ascultari", ascultariRouter);
 
 // === HEALTHCHECK ===
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true, ts: Date.now() });
+});
+
+// === SERVE FRONTEND (vite build) ===
+app.use(express.static(path.join(__dirname, "../../frontend/dist")));
+
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "../../frontend/dist/index.html"));
 });
 
 // === START SERVER ===
