@@ -14,25 +14,20 @@ const {
   requireValidSubscription,
 } = require("../middleware/auth");
 
-// 🔐 Elevul logat își vede propriile evaluări
+// Elevul logat își vede propriile evaluări
 router.get(
   "/",
   requireAuth,
-  requireRole("student"),          // doar elevii își văd evaluările proprii
-  requireValidSubscription,        // verifică dacă are abonament valid (bio1..adm2)
+  requireRole("student"),
+  requireValidSubscription,
   getMyEvaluations
 );
 
-// 🔐 Admin/Prof creează evaluare
-router.post(
-  "/",
-  requireAuth,
-  requireRole("admin", "prof"),
-  createEvaluation
-);
+// Admin/Prof creează evaluare
+router.post("/", requireAuth, requireRole("admin", "prof"), createEvaluation);
 
-// 🔐 Admin → toți elevii eligibili
-// 🔐 Prof → doar elevii alocați lui
+// Admin → toți elevii eligibili
+// Prof → doar elevii lui
 router.get(
   "/students-with-admitere",
   requireAuth,
@@ -40,7 +35,7 @@ router.get(
   getStudentsWithAdmitere
 );
 
-// 🔐 Admin/Prof vede evaluările unui anumit elev
+// Admin/Prof vede evaluările unui elev
 router.get(
   "/:studentId",
   requireAuth,

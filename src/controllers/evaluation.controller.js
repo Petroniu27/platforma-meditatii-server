@@ -1,4 +1,3 @@
-// server/src/controllers/evaluation.controller.js
 const Evaluation = require("../models/Evaluation");
 const User = require("../models/User");
 
@@ -8,11 +7,34 @@ const User = require("../models/User");
  */
 exports.createEvaluation = async (req, res) => {
   try {
-    const { studentId, chapter, score, date } = req.body;
+    const { studentId, subject, chapterCode, score, date } = req.body;
 
+    // 1. Verifică elevul
+    const student = await User.findById(studentId);
+    if (!student || student.role !== "student") {
+      return res
+        .status(404)
+        .json({ error: "Elevul nu există sau nu este valid." });
+    }
+
+    // 2. Dacă e profesor → verifică dacă elevul e asignat
+    if (req.user.role === "prof") {
+      if (
+        !student.assignedProfId ||
+        student.assignedProfId.toString() !== req.user.id
+      ) {
+        return res
+          .status(403)
+          .json({ error: "Elevul nu este asignat acestui profesor." });
+      }
+    }
+
+    // 3. Creează evaluarea
     const newEval = await Evaluation.create({
       studentId,
-      chapter,
+      profId: req.user.id,
+      subject,
+      chapterCode,
       score,
       date,
     });
@@ -30,11 +52,8 @@ exports.createEvaluation = async (req, res) => {
  */
 exports.getMyEvaluations = async (req, res) => {
   try {
-    console.log("👤 getMyEvaluations pentru user:", req.user);
-
     const studentId = req.user.id;
     const evaluations = await Evaluation.find({ studentId }).sort({ date: 1 });
-
     res.json({ evaluations });
   } catch (err) {
     console.error("❌ Eroare la getMyEvaluations:", err);
@@ -44,15 +63,12 @@ exports.getMyEvaluations = async (req, res) => {
 
 /**
  * GET /evaluations/:studentId
- * Admin/Prof poate vedea evaluările unui anumit elev
+ * Admin/Prof poate vedea evaluările unui elev
  */
 exports.getEvaluationsByStudent = async (req, res) => {
   try {
     const { studentId } = req.params;
-    console.log(`👤 getEvaluationsByStudent pentru elevul ${studentId}`);
-
     const evaluations = await Evaluation.find({ studentId }).sort({ date: 1 });
-
     res.json({ evaluations });
   } catch (err) {
     console.error("❌ Eroare la getEvaluationsByStudent:", err);
@@ -62,14 +78,11 @@ exports.getEvaluationsByStudent = async (req, res) => {
 
 /**
  * GET /evaluations/students-with-admitere
- * Adminul → toți elevii eligibili
- * Profesorul → doar elevii alocați lui
+ * Admin → toți elevii eligibili
+ * Prof → doar elevii lui
  */
 exports.getStudentsWithAdmitere = async (req, res) => {
   try {
-    console.log("=== getStudentsWithAdmitere ===");
-    console.log("User logat:", req.user);
-
     const filter = {
       role: "student",
       subscriptions: {

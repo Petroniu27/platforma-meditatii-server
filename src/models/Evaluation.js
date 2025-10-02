@@ -1,15 +1,25 @@
 const mongoose = require("mongoose");
 
-const EvaluationSchema = new mongoose.Schema(
+const evaluationSchema = new mongoose.Schema(
   {
     studentId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
-    chapter: {
+    profId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    subject: {
       type: String,
-      required: true, // ex: "Celula", "Țesuturi", etc.
+      enum: ["bac_bio", "bac_romana", "bac_chimie", "adm_bio", "adm_chimie"],
+      required: true,
+    },
+    chapterCode: {
+      type: String,
+      required: true, // ex: "digestie_absorbtie", "grupele_sangvine"
     },
     score: {
       type: Number,
@@ -19,10 +29,10 @@ const EvaluationSchema = new mongoose.Schema(
     },
     date: {
       type: Date,
-      default: Date.now,
+      required: true,
     },
   },
   { timestamps: true }
 );
 
-module.exports = mongoose.model("Evaluation", EvaluationSchema);
+module.exports = mongoose.model("Evaluation", evaluationSchema);
