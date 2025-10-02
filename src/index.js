@@ -3,7 +3,6 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
-const path = require("path");
 
 const app = express();
 
@@ -13,7 +12,7 @@ const videosRouter = require("./routes/videos");
 const evaluationRouter = require("./routes/evaluation.routes");
 const contactRouter = require("./routes/contact.routes");
 const authRouter = require("./routes/auth.routes");
-const ascultariRouter = require("./routes/ascultari.routes"); // 👈 aici avem bookings + credits + availability
+const ascultariRouter = require("./routes/ascultari.routes"); // bookings + credits + availability
 
 // === STRIPE WEBHOOK (raw body - doar pentru webhook) ===
 // ⚠️ trebuie definit înainte de express.json()
@@ -27,7 +26,7 @@ app.post(
 app.use(
   cors({
     origin: "https://academedica.ro", // 🔐 doar frontendul tău are voie
-    credentials: true, // 🔐 permite trimiterea de token/header
+    credentials: true,
   })
 );
 
@@ -46,12 +45,8 @@ app.get("/api/health", (_req, res) => {
   res.json({ ok: true, ts: Date.now() });
 });
 
-// === SERVE FRONTEND (vite build) ===
-app.use(express.static(path.join(__dirname, "../../frontend/dist")));
-
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "../../frontend/dist/index.html"));
-});
+// ⚠️ ATENȚIE: nu mai servim frontend-ul de aici
+// Render-ul Static Site se ocupă de React build
 
 // === START SERVER ===
 const PORT = process.env.PORT || 5001;
