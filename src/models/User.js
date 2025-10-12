@@ -25,8 +25,15 @@ const UserSchema = new mongoose.Schema(
 
     active: { type: Boolean, default: true },
 
+    // 🔹 Nou format pentru abonamente
     subscriptions: {
-      type: [String], // ex: ["bio1", "chim2", "adm1"]
+      type: [
+        {
+          plan: { type: String, required: true }, // ex: "bio1", "chim2", "adm1"
+          startDate: { type: Date, default: Date.now },
+          endDate: { type: Date, required: true },
+        },
+      ],
       default: [],
     },
 

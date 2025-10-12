@@ -29,7 +29,6 @@ const PRICE_TO_CODE = {
   [process.env.STRIPE_PRICE_ID_ADM2]: "adm2",
 };
 
-
 // === 🔹 SUBSCRIPTIONS ===
 router.post("/checkout-subscription", requireAuth, express.json(), async (req, res) => {
   if (!stripe) return res.status(503).json({ error: "Stripe not configured" });
@@ -111,23 +110,33 @@ const handleStripeWebhook = async (req, res) => {
           const user = await User.findById(userId);
           let subs = user.subscriptions || [];
 
-          // Upgrade logic
-          if (code === "bio2") subs = subs.filter(s => s !== "bio1");
-          if (code === "chim2") subs = subs.filter(s => s !== "chim1");
+          // 🔹 Upgrade logic (păstrat identic)
+          if (code === "bio2") subs = subs.filter(s => s.plan !== "bio1");
+          if (code === "chim2") subs = subs.filter(s => s.plan !== "chim1");
 
-          // Admitere logic
           if (code.startsWith("adm")) {
-            subs = subs.filter(s => !["bio1", "chim1"].includes(s));
+            subs = subs.filter(s => !["bio1", "chim1"].includes(s.plan));
           }
 
-          // Adaugă dacă nu există deja
-          if (!subs.includes(code)) subs.push(code);
+          // 🔹 Adăugare abonament nou cu dată de început și sfârșit (30 zile)
+          const start = new Date();
+          const end = new Date();
+          end.setDate(start.getDate() + 30);
+
+          // Înlocuiește dacă există deja același plan, altfel adaugă
+          const existingIndex = subs.findIndex(s => s.plan === code);
+          if (existingIndex >= 0) {
+            subs[existingIndex] = { plan: code, startDate: start, endDate: end };
+          } else {
+            subs.push({ plan: code, startDate: start, endDate: end });
+          }
 
           user.subscriptions = subs;
           await user.save();
 
           console.log(`✅ Subscriptions actualizate pentru user ${userId}:`, subs);
 
+          // 🔹 Credite bonus (păstrat identic)
           if (["bio2", "chim2", "adm2"].includes(code)) {
             const creditsToAdd = code === "adm2" ? 8 : 4;
             const period = new Date().toISOString().slice(0, 7);

@@ -47,7 +47,7 @@ function requireRole(...roles) {
   };
 }
 
-// ✅ Middleware pentru verificare abonament valid
+// ✅ Middleware pentru verificare abonament valid (versiune corectată)
 function requireValidSubscription(req, res, next) {
   // admin și prof → acces oricum
   if (req.user && (req.user.role === "admin" || req.user.role === "prof")) {
@@ -59,7 +59,12 @@ function requireValidSubscription(req, res, next) {
     ? req.user.subscriptions
     : [];
 
-  const hasValid = subs.some((s) => validSubs.includes(s));
+  const now = new Date();
+  const hasValid = subs.some((s) => {
+    const type = s.plan || s.type || s.name; // în funcție de structura ta
+    const endDate = new Date(s.endDate || s.expiry || s.validUntil);
+    return validSubs.includes(type) && endDate > now;
+  });
 
   if (!hasValid) {
     return res
